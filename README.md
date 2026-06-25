@@ -13,6 +13,39 @@ identifiers in this project are intentionally project-specific (see
 | backend   | Spring Boot 3 (Java 21)    | REST API (CRUD for expense entries) |
 | database  | PostgreSQL 16              | Persistent storage on named volume  |
 
+```mermaid
+flowchart LR
+    User([User / Browser])
+
+    subgraph Cluster["Kubernetes namespace: kiiis-ledger"]
+        Ing["Ingress<br/>ledger-ingress<br/>host: ledger.kiiis.local"]
+
+        subgraph UI["Deployment: ledger-ui (replicas=2)"]
+            UIPod1[nginx + static HTML/JS]
+        end
+
+        subgraph API["Deployment: ledger-api (replicas=2)"]
+            APIPod1[Spring Boot 3 / Java 21]
+        end
+
+        subgraph DB["StatefulSet: ledger-db (replicas=1)"]
+            DBPod[Postgres 16-alpine]
+            PVC[(PVC ledger-data<br/>2Gi)]
+            DBPod --- PVC
+        end
+
+        SvcUI([Service: ledger-ui :80])
+        SvcAPI([Service: backend :8080])
+        SvcDB([Headless Svc: ledger-db :5432])
+
+        Ing -- "path: /" --> SvcUI --> UIPod1
+        Ing -- "path: /api/*" --> SvcAPI --> APIPod1
+        APIPod1 -- "JDBC" --> SvcDB --> DBPod
+    end
+
+    User -- "HTTP" --> Ing
+```
+
 ## API endpoints
 
 | Method | Path                  | Description       |
