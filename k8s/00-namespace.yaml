@@ -1,6 +1,9 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: expense-tracker
+  name: kiiis-ledger
   labels:
-    app.kubernetes.io/part-of: expense-tracker
+    app.kubernetes.io/part-of: kiiis-ledger
+    app.kubernetes.io/managed-by: kubectl
+    kiiis.finki.mk/course: kiiis
+    kiiis.finki.mk/project: expense-tracker

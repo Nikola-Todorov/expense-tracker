@@ -1,14 +1,19 @@
+# Service is intentionally named "backend" because the frontend's nginx
+# upstream is hardcoded to that DNS name (proxy_pass http://backend:8080).
+# Keeping the Service name compatible avoids a frontend image rebuild and
+# keeps in-cluster DNS resolving the same way compose did.
 apiVersion: v1
 kind: Service
 metadata:
   name: backend
-  namespace: expense-tracker
+  namespace: kiiis-ledger
   labels:
-    app: backend
+    app.kubernetes.io/part-of: kiiis-ledger
+    app.kubernetes.io/component: api
 spec:
   type: ClusterIP
   selector:
-    app: backend
+    app.kubernetes.io/name: ledger-api
   ports:
     - port: 8080
       targetPort: 8080

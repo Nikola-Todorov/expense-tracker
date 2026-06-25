@@ -1,65 +1,93 @@
-# Non-sensitive backend configuration
+# Non-sensitive backend configuration.
+# DB_HOST points at the headless Service "ledger-db" in this namespace.
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: backend-config
-  namespace: expense-tracker
+  name: ledger-api-config
+  namespace: kiiis-ledger
+  labels:
+    app.kubernetes.io/part-of: kiiis-ledger
+    app.kubernetes.io/component: api
 data:
-  DB_HOST: database
+  DB_HOST: ledger-db
   DB_PORT: "5432"
-  DB_NAME: expensedb
-  DB_USER: expenseuser
+  DB_NAME: kiiis_ledger
+  DB_USER: ledger_admin
   APP_PORT: "8080"
 ---
-# Backend reuses the DB password secret value
 apiVersion: v1
 kind: Secret
 metadata:
-  name: backend-secret
-  namespace: expense-tracker
+  name: ledger-api-secret
+  namespace: kiiis-ledger
+  labels:
+    app.kubernetes.io/part-of: kiiis-ledger
+    app.kubernetes.io/component: api
 type: Opaque
 stringData:
-  DB_PASSWORD: s3cr3t-pg-pass
+  DB_PASSWORD: K11s_l3dger_dev_2026
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: backend
-  namespace: expense-tracker
+  name: ledger-api
+  namespace: kiiis-ledger
+  labels:
+    app.kubernetes.io/part-of: kiiis-ledger
+    app.kubernetes.io/component: api
 spec:
   replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
-      app: backend
+      app.kubernetes.io/name: ledger-api
   template:
     metadata:
       labels:
-        app: backend
+        app.kubernetes.io/name: ledger-api
+        app.kubernetes.io/part-of: kiiis-ledger
+        app.kubernetes.io/component: api
     spec:
       containers:
-        - name: backend
-          # Replace YOUR_DOCKERHUB_USERNAME with your actual DockerHub username
-          image: YOUR_DOCKERHUB_USERNAME/expense-backend:latest
+        - name: api
+          image: docker.io/nixiblatec/kiiis-ledger-backend:latest
+          # IfNotPresent so a locally-loaded image (e.g. `minikube image load`)
+          # is preferred when one is already cached on the node. Useful when
+          # iterating without re-pushing to the registry.
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
+              name: http
           envFrom:
             - configMapRef:
-                name: backend-config
+                name: ledger-api-config
           env:
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: backend-secret
+                  name: ledger-api-secret
                   key: DB_PASSWORD
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
               port: 8080
-            initialDelaySeconds: 30
+            initialDelaySeconds: 25
             periodSeconds: 10
+            failureThreshold: 6
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
               port: 8080
-            initialDelaySeconds: 45
-            periodSeconds: 15
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "384Mi"
+            limits:
+              cpu: "750m"
+              memory: "768Mi"

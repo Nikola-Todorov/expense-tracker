@@ -1,42 +1,69 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: frontend
-  namespace: expense-tracker
+  name: ledger-ui
+  namespace: kiiis-ledger
+  labels:
+    app.kubernetes.io/part-of: kiiis-ledger
+    app.kubernetes.io/component: ui
 spec:
   replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
-      app: frontend
+      app.kubernetes.io/name: ledger-ui
   template:
     metadata:
       labels:
-        app: frontend
+        app.kubernetes.io/name: ledger-ui
+        app.kubernetes.io/part-of: kiiis-ledger
+        app.kubernetes.io/component: ui
     spec:
       containers:
-        - name: frontend
-          # Replace YOUR_DOCKERHUB_USERNAME with your actual DockerHub username
-          image: YOUR_DOCKERHUB_USERNAME/expense-frontend:latest
+        - name: ui
+          image: docker.io/nixiblatec/kiiis-ledger-ui:latest
+          # IfNotPresent so a locally-loaded image (e.g. `minikube image load`)
+          # is preferred when one is already cached on the node.
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
+              name: http
           readinessProbe:
             httpGet:
               path: /
               port: 80
-            initialDelaySeconds: 5
+            initialDelaySeconds: 3
             periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "32Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: frontend
-  namespace: expense-tracker
+  name: ledger-ui
+  namespace: kiiis-ledger
   labels:
-    app: frontend
+    app.kubernetes.io/part-of: kiiis-ledger
+    app.kubernetes.io/component: ui
 spec:
   type: ClusterIP
   selector:
-    app: frontend
+    app.kubernetes.io/name: ledger-ui
   ports:
     - port: 80
       targetPort: 80

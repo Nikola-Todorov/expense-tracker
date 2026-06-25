@@ -62,31 +62,46 @@ The workflow at `.github/workflows/ci.yml` runs on every push to `main`:
 
 ---
 
-## 3. Deploy to Kubernetes
-
-Edit the two Deployment files and replace `YOUR_DOCKERHUB_USERNAME` in
-`k8s/03-backend-deployment.yaml` and `k8s/05-frontend.yaml`.
+## 3. Deploy to Kubernetes (minikube)
 
 ```bash
+# 1. start a cluster + ingress addon
+minikube start --driver=docker --cpus=2 --memory=4096
+minikube addons enable ingress
+
+# 2. apply everything into the dedicated namespace
 kubectl apply -f k8s/
 
-# Watch it come up
-kubectl get all -n kiiis-ledger
+# 3. watch it come up
+kubectl get all,ingress,pvc -n kiiis-ledger
+kubectl -n kiiis-ledger rollout status deploy/ledger-api
+kubectl -n kiiis-ledger rollout status deploy/ledger-ui
 
-# Add the ingress host to /etc/hosts (use `minikube ip` for the actual address)
-echo "$(minikube ip) ledger.kiiis.local" | sudo tee -a /etc/hosts
+# 4a. quick demo via port-forward (no sudo)
+kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8085:80 &
+curl -H "Host: ledger.kiiis.local" http://localhost:8085/api/expenses
+
+# 4b. browser demo (needs sudo for /etc/hosts + tunnel)
+sudo minikube tunnel &
+echo "127.0.0.1 ledger.kiiis.local" | sudo tee -a /etc/hosts
+open http://ledger.kiiis.local
 ```
 
-Then open <http://ledger.kiiis.local>.
-
 ### Manifests included
-- `00-namespace.yaml` — dedicated namespace
-- `01-db-config.yaml` — DB ConfigMap + Secret
-- `02-database-statefulset.yaml` — Postgres StatefulSet + headless Service + PVC
-- `03-backend-deployment.yaml` — backend Deployment
-- `04-backend-service.yaml` — backend Service
-- `05-frontend.yaml` — frontend Deployment + Service
-- `06-ingress.yaml` — Ingress
+- `00-namespace.yaml` — `kiiis-ledger` namespace + project labels
+- `01-db-config.yaml` — `ledger-db-config` ConfigMap + `ledger-db-secret`
+- `02-database-statefulset.yaml` — `ledger-db` StatefulSet + headless Service + 2Gi PVC
+- `03-backend-deployment.yaml` — `ledger-api` Deployment + `ledger-api-config`/`-secret`
+- `04-backend-service.yaml` — Service named `backend` (kept to satisfy the frontend nginx upstream)
+- `05-frontend.yaml` — `ledger-ui` Deployment + Service
+- `06-ingress.yaml` — `ledger-ingress` routing `/api` → backend, `/` → ledger-ui
+
+> **Apple Silicon note**: minikube on Docker driver runs arm64. The CI pipeline
+> builds multi-arch images (`linux/amd64,linux/arm64`) so pods pull a matching
+> manifest. If iterating locally without re-pushing, `minikube image load
+> docker.io/<user>/kiiis-ledger-backend:latest` side-loads the arm64 build the
+> compose stack already produced; the manifests set `imagePullPolicy: IfNotPresent`
+> so a cached image is preferred.
 
 ---
 
@@ -106,4 +121,9 @@ manifests and code so nothing reads as boilerplate:
 | Image tags        | `expense-*:local`    | `kiiis-ledger-{backend,ui}:local` |
 | UI host port      | `8090`               | `8095`                    |
 | K8s namespace     | `expense-tracker`    | `kiiis-ledger`            |
+| K8s StatefulSet   | `database`           | `ledger-db`               |
+| K8s Deployments   | `backend`, `frontend`| `ledger-api`, `ledger-ui` |
+| K8s ConfigMaps    | `db-config`, `backend-config` | `ledger-db-config`, `ledger-api-config` |
+| K8s Secrets       | `db-secret`, `backend-secret` | `ledger-db-secret`, `ledger-api-secret` |
 | Ingress host      | `expense.local`      | `ledger.kiiis.local`      |
+| CI image arch     | `linux/amd64` only   | `linux/amd64,linux/arm64` |

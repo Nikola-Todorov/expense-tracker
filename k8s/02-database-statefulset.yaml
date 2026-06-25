@@ -1,15 +1,16 @@
-# Headless service required by the StatefulSet
+# Headless Service required by the StatefulSet for stable pod DNS.
 apiVersion: v1
 kind: Service
 metadata:
-  name: database
-  namespace: expense-tracker
+  name: ledger-db
+  namespace: kiiis-ledger
   labels:
-    app: database
+    app.kubernetes.io/part-of: kiiis-ledger
+    app.kubernetes.io/component: database
 spec:
   clusterIP: None
   selector:
-    app: database
+    app.kubernetes.io/name: ledger-db
   ports:
     - port: 5432
       targetPort: 5432
@@ -18,52 +19,68 @@ spec:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: database
-  namespace: expense-tracker
+  name: ledger-db
+  namespace: kiiis-ledger
+  labels:
+    app.kubernetes.io/part-of: kiiis-ledger
+    app.kubernetes.io/component: database
 spec:
-  serviceName: database
+  serviceName: ledger-db
   replicas: 1
   selector:
     matchLabels:
-      app: database
+      app.kubernetes.io/name: ledger-db
   template:
     metadata:
       labels:
-        app: database
+        app.kubernetes.io/name: ledger-db
+        app.kubernetes.io/part-of: kiiis-ledger
+        app.kubernetes.io/component: database
     spec:
       containers:
         - name: postgres
           image: postgres:16-alpine
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5432
               name: postgres
           envFrom:
             - configMapRef:
-                name: db-config
+                name: ledger-db-config
           env:
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: db-secret
+                  name: ledger-db-secret
                   key: POSTGRES_PASSWORD
           volumeMounts:
-            - name: pgdata
+            - name: ledger-data
               mountPath: /var/lib/postgresql/data
           readinessProbe:
             exec:
-              command: ["pg_isready", "-U", "expenseuser", "-d", "expensedb"]
+              command: ["pg_isready", "-U", "ledger_admin", "-d", "kiiis_ledger"]
             initialDelaySeconds: 10
             periodSeconds: 10
           livenessProbe:
             exec:
-              command: ["pg_isready", "-U", "expenseuser", "-d", "expensedb"]
-            initialDelaySeconds: 20
-            periodSeconds: 15
+              command: ["pg_isready", "-U", "ledger_admin", "-d", "kiiis_ledger"]
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "192Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
   volumeClaimTemplates:
     - metadata:
-        name: pgdata
+        name: ledger-data
+        labels:
+          app.kubernetes.io/part-of: kiiis-ledger
+          app.kubernetes.io/component: database
       spec:
         accessModes: ["ReadWriteOnce"]
         resources:
           requests:
-            storage: 1Gi
+            storage: 2Gi

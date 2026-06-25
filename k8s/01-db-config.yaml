@@ -1,20 +1,26 @@
-# Non-sensitive DB configuration
+# Non-sensitive Postgres configuration.
+# PGDATA points to a subdir so the volume's lost+found dir doesn't break initdb.
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: db-config
-  namespace: expense-tracker
+  name: ledger-db-config
+  namespace: kiiis-ledger
+  labels:
+    app.kubernetes.io/part-of: kiiis-ledger
+    app.kubernetes.io/component: database
 data:
-  POSTGRES_DB: expensedb
-  POSTGRES_USER: expenseuser
+  POSTGRES_DB: kiiis_ledger
+  POSTGRES_USER: ledger_admin
   PGDATA: /var/lib/postgresql/data/pgdata
 ---
-# Sensitive DB credentials (demo value; in production use a sealed/managed secret)
 apiVersion: v1
 kind: Secret
 metadata:
-  name: db-secret
-  namespace: expense-tracker
+  name: ledger-db-secret
+  namespace: kiiis-ledger
+  labels:
+    app.kubernetes.io/part-of: kiiis-ledger
+    app.kubernetes.io/component: database
 type: Opaque
 stringData:
-  POSTGRES_PASSWORD: s3cr3t-pg-pass
+  POSTGRES_PASSWORD: K11s_l3dger_dev_2026
