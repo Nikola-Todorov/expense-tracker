@@ -1,0 +1,69 @@
+# Headless service required by the StatefulSet
+apiVersion: v1
+kind: Service
+metadata:
+  name: database
+  namespace: expense-tracker
+  labels:
+    app: database
+spec:
+  clusterIP: None
+  selector:
+    app: database
+  ports:
+    - port: 5432
+      targetPort: 5432
+      name: postgres
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: database
+  namespace: expense-tracker
+spec:
+  serviceName: database
+  replicas: 1
+  selector:
+    matchLabels:
+      app: database
+  template:
+    metadata:
+      labels:
+        app: database
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+              name: postgres
+          envFrom:
+            - configMapRef:
+                name: db-config
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "expenseuser", "-d", "expensedb"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "expenseuser", "-d", "expensedb"]
+            initialDelaySeconds: 20
+            periodSeconds: 15
+  volumeClaimTemplates:
+    - metadata:
+        name: pgdata
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi

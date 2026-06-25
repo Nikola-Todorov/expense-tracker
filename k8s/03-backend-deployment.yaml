@@ -1,0 +1,65 @@
+# Non-sensitive backend configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: expense-tracker
+data:
+  DB_HOST: database
+  DB_PORT: "5432"
+  DB_NAME: expensedb
+  DB_USER: expenseuser
+  APP_PORT: "8080"
+---
+# Backend reuses the DB password secret value
+apiVersion: v1
+kind: Secret
+metadata:
+  name: backend-secret
+  namespace: expense-tracker
+type: Opaque
+stringData:
+  DB_PASSWORD: s3cr3t-pg-pass
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: expense-tracker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          # Replace YOUR_DOCKERHUB_USERNAME with your actual DockerHub username
+          image: YOUR_DOCKERHUB_USERNAME/expense-backend:latest
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: backend-config
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: DB_PASSWORD
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 45
+            periodSeconds: 15

@@ -1,0 +1,52 @@
+services:
+  database:
+    image: postgres:16-alpine
+    container_name: kiiis-ledger-db
+    environment:
+      POSTGRES_DB: kiiis_ledger
+      POSTGRES_USER: ledger_admin
+      POSTGRES_PASSWORD: K11s_l3dger_dev_2026
+    volumes:
+      - kiiis-ledger-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ledger_admin -d kiiis_ledger"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kiiis-app-net
+
+  backend:
+    build: ./backend
+    image: kiiis-ledger-backend:local
+    container_name: kiiis-ledger-backend
+    environment:
+      DB_HOST: database
+      DB_PORT: "5432"
+      DB_NAME: kiiis_ledger
+      DB_USER: ledger_admin
+      DB_PASSWORD: K11s_l3dger_dev_2026
+      APP_PORT: "8080"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - kiiis-app-net
+
+  frontend:
+    build: ./frontend
+    image: kiiis-ledger-ui:local
+    container_name: kiiis-ledger-ui
+    ports:
+      - "8095:80"
+    depends_on:
+      - backend
+    networks:
+      - kiiis-app-net
+
+volumes:
+  kiiis-ledger-data:
+
+networks:
+  kiiis-app-net:
+    driver: bridge

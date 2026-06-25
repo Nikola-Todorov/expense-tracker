@@ -1,0 +1,25 @@
+# Build output
+target/
+*.class
+*.jar
+*.war
+
+# Logs
+logs/
+*.log
+
+# IDE / editor
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Local overrides / secrets
+.env
+.env.local
+application-local.properties
+k8s/_local/
