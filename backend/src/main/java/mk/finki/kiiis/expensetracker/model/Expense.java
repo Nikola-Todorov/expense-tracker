@@ -1,37 +1,28 @@
 package mk.finki.kiiis.expensetracker.model;
 
-import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "expenses")
+@Document(collection = "expenses")
 public class Expense {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
     @NotBlank(message = "Item name must not be blank")
-    @Column(nullable = false)
     private String item;
 
     @NotNull(message = "Amount must not be null")
     @PositiveOrZero(message = "Amount must be zero or positive")
-    @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
-
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-    }
 
     public Expense() {
     }
@@ -39,13 +30,14 @@ public class Expense {
     public Expense(String item, BigDecimal amount) {
         this.item = item;
         this.amount = amount;
+        this.createdAt = LocalDateTime.now();
     }
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 

@@ -27,7 +27,7 @@ public class ExpenseController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Expense> getOne(@PathVariable Long id) {
+    public ResponseEntity<Expense> getOne(@PathVariable String id) {
         return repository.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -41,7 +41,7 @@ public class ExpenseController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Expense> update(@PathVariable Long id,
+    public ResponseEntity<Expense> update(@PathVariable String id,
                                           @Valid @RequestBody ExpenseRequest request) {
         return repository.findById(id)
                 .map(existing -> {
@@ -53,7 +53,7 @@ public class ExpenseController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable String id) {
         if (!repository.existsById(id)) {
             return ResponseEntity.notFound().build();
         }
