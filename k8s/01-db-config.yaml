@@ -1,5 +1,5 @@
-# Non-sensitive Postgres configuration.
-# PGDATA points to a subdir so the volume's lost+found dir doesn't break initdb.
+# Non-sensitive MongoDB configuration consumed by the official mongo image
+# on first init (MONGO_INITDB_* env vars).
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -9,9 +9,8 @@ metadata:
     app.kubernetes.io/part-of: kiiis-ledger
     app.kubernetes.io/component: database
 data:
-  POSTGRES_DB: kiiis_ledger
-  POSTGRES_USER: ledger_admin
-  PGDATA: /var/lib/postgresql/data/pgdata
+  MONGO_INITDB_DATABASE: kiiis_ledger
+  MONGO_INITDB_ROOT_USERNAME: ledger_admin
 ---
 apiVersion: v1
 kind: Secret
@@ -23,4 +22,4 @@ metadata:
     app.kubernetes.io/component: database
 type: Opaque
 stringData:
-  POSTGRES_PASSWORD: K11s_l3dger_dev_2026
+  MONGO_INITDB_ROOT_PASSWORD: K11s_l3dger_dev_2026

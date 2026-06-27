@@ -10,7 +10,7 @@ metadata:
     app.kubernetes.io/component: api
 data:
   DB_HOST: ledger-db
-  DB_PORT: "5432"
+  DB_PORT: "27017"
   DB_NAME: kiiis_ledger
   DB_USER: ledger_admin
   APP_PORT: "8080"

@@ -23,3 +23,7 @@ Thumbs.db
 .env.local
 application-local.properties
 k8s/_local/
+
+# Elaborat working files (kept local — not for the public repo)
+docs/elaborat-gdocs.txt
+docs/elaborat-tables.tsv

@@ -1,15 +1,15 @@
 services:
   database:
-    image: postgres:16-alpine
+    image: mongo:7
     container_name: kiiis-ledger-db
     environment:
-      POSTGRES_DB: kiiis_ledger
-      POSTGRES_USER: ledger_admin
-      POSTGRES_PASSWORD: K11s_l3dger_dev_2026
+      MONGO_INITDB_ROOT_USERNAME: ledger_admin
+      MONGO_INITDB_ROOT_PASSWORD: K11s_l3dger_dev_2026
+      MONGO_INITDB_DATABASE: kiiis_ledger
     volumes:
-      - kiiis-ledger-data:/var/lib/postgresql/data
+      - kiiis-ledger-mongo-data:/data/db
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ledger_admin -d kiiis_ledger"]
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -22,7 +22,7 @@ services:
     container_name: kiiis-ledger-backend
     environment:
       DB_HOST: database
-      DB_PORT: "5432"
+      DB_PORT: "27017"
       DB_NAME: kiiis_ledger
       DB_USER: ledger_admin
       DB_PASSWORD: K11s_l3dger_dev_2026
@@ -45,7 +45,7 @@ services:
       - kiiis-app-net
 
 volumes:
-  kiiis-ledger-data:
+  kiiis-ledger-mongo-data:
 
 networks:
   kiiis-app-net:

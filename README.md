@@ -11,7 +11,7 @@ identifiers in this project are intentionally project-specific (see
 |-----------|----------------------------|-------------------------------------|
 | frontend  | Nginx + static HTML/JS     | UI, proxies `/api` to backend       |
 | backend   | Spring Boot 3 (Java 21)    | REST API (CRUD for expense entries) |
-| database  | PostgreSQL 16              | Persistent storage on named volume  |
+| database  | MongoDB 7                  | Persistent storage on named volume  |
 
 ```mermaid
 flowchart LR
@@ -29,18 +29,18 @@ flowchart LR
         end
 
         subgraph DB["StatefulSet: ledger-db (replicas=1)"]
-            DBPod[Postgres 16-alpine]
-            PVC[(PVC ledger-data<br/>2Gi)]
+            DBPod[MongoDB 7]
+            PVC[(PVC mongo-data<br/>2Gi)]
             DBPod --- PVC
         end
 
         SvcUI([Service: ledger-ui :80])
         SvcAPI([Service: backend :8080])
-        SvcDB([Headless Svc: ledger-db :5432])
+        SvcDB([Headless Svc: ledger-db :27017])
 
         Ing -- "path: /" --> SvcUI --> UIPod1
         Ing -- "path: /api/*" --> SvcAPI --> APIPod1
-        APIPod1 -- "JDBC" --> SvcDB --> DBPod
+        APIPod1 -- "Mongo wire" --> SvcDB --> DBPod
     end
 
     User -- "HTTP" --> Ing
@@ -148,7 +148,7 @@ manifests and code so nothing reads as boilerplate:
 | DB name           | `expensedb`          | `kiiis_ledger`            |
 | DB user           | `expenseuser`        | `ledger_admin`            |
 | DB password       | `changeme`           | `K11s_l3dger_dev_2026`    |
-| Compose volume    | `expense-pgdata`     | `kiiis-ledger-data`       |
+| Compose volume    | `expense-mongodata`  | `kiiis-ledger-mongo-data` |
 | Compose network   | `expense-net`        | `kiiis-app-net`           |
 | Container names   | `expense-*`          | `kiiis-ledger-{db,backend,ui}` |
 | Image tags        | `expense-*:local`    | `kiiis-ledger-{backend,ui}:local` |
